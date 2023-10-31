@@ -62,15 +62,33 @@ X_train['MinorAxisLength'] = minorNormalizer.fit_transform(X_train['MinorAxisLen
 
 from perceptron import Perceptron
 model = Perceptron(hasBias=True, learning_rate= 0.1, epochs=1000)
-model.train(X_train, y_train)
+# model.train(X_train, y_train)
 
 X_test['Area'] = areaNormalizer.transform(X_test['Area'])
 X_test['Perimeter'] = perimNormalizer.transform(X_test['Perimeter'])
 X_test['MajorAxisLength'] = majorNormalizer.transform(X_test['MajorAxisLength'])
 X_test['MinorAxisLength'] = minorNormalizer.transform(X_test['MinorAxisLength'])
 
-pred = model.predict(X_test)
+# pred = model.predict(X_test)
 
+
+# correct = 0
+# import numpy as np
+# y_test = np.array(y_test)
+
+# for i in range(len(y_test)):
+#     print('y_test', y_test[i], 'pred', pred[i])
+#     if(y_test[i] == pred[i]):
+#         correct += 1
+# print('accur', correct/len(y_test))
+
+
+
+from adaline import Adaline
+model = Adaline(hasBias=True, learning_rate=0.1, epochs=1000, mse_threshold=1)
+
+model.train(X_train, y_train)
+pred = model.predict(X_test)
 
 correct = 0
 import numpy as np
@@ -81,5 +99,3 @@ for i in range(len(y_test)):
     if(y_test[i] == pred[i]):
         correct += 1
 print('accur', correct/len(y_test))
-
-
