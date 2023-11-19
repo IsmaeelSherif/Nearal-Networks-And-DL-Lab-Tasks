@@ -61,6 +61,7 @@ class Adaline() :
                     #     print('yi=', yi, 'ypred', ypred,'error', error, 'coeff', coeffs[class_index])
                     
             # print('epoch', epoch_num, errors)
+            errors = [(classMSE / sampleSize) for classMSE in errors]
             if(all(classMSE <= self.mse_threshold for classMSE in errors)):
                 print('Stopping at', epoch_num, 'MSE Threshold has been reached')
                 break

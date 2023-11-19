@@ -59,16 +59,15 @@ X_train['Perimeter'] = perimNormalizer.fit_transform(X_train['Perimeter'])
 X_train['MajorAxisLength'] = majorNormalizer.fit_transform(X_train['MajorAxisLength'])
 X_train['MinorAxisLength'] = minorNormalizer.fit_transform(X_train['MinorAxisLength'])
 
-
-from perceptron import Perceptron
-model = Perceptron(hasBias=True, learning_rate= 0.1, epochs=1000)
-# model.train(X_train, y_train)
-
 X_test['Area'] = areaNormalizer.transform(X_test['Area'])
 X_test['Perimeter'] = perimNormalizer.transform(X_test['Perimeter'])
 X_test['MajorAxisLength'] = majorNormalizer.transform(X_test['MajorAxisLength'])
 X_test['MinorAxisLength'] = minorNormalizer.transform(X_test['MinorAxisLength'])
 
+
+# from Models.perceptron import Perceptron
+# model = Perceptron(hasBias=True, learning_rate= 0.1, epochs=1000)
+# model.train(X_train, y_train)
 # pred = model.predict(X_test)
 
 
@@ -84,18 +83,33 @@ X_test['MinorAxisLength'] = minorNormalizer.transform(X_test['MinorAxisLength'])
 
 
 
-from adaline import Adaline
-model = Adaline(hasBias=True, learning_rate=0.1, epochs=1000, mse_threshold=1)
+# from Models.adaline import Adaline
+# model = Adaline(hasBias=True, learning_rate=0.1, epochs=1000, mse_threshold=1)
+
+# model.train(X_train, y_train)
+# pred = model.predict(X_test)
+
+# correct = 0
+# import numpy as np
+# y_test = np.array(y_test)
+
+# for i in range(len(y_test)):
+#     print('y_test', y_test[i], 'pred', pred[i])
+#     if(y_test[i] == pred[i]):
+#         correct += 1
+# print('accur', correct/len(y_test))
+
+from Models.multilayer_perceptron import MulilayerPerceptron
+
+model = MulilayerPerceptron(hasBias=True, learning_rate=0.1, epochs=3000, layers=[2, 2, 1], activation='sigmoid')
+
+X_train = [
+    [0, 0],
+    [0, 1],
+    [1, 0],
+    [1, 1]
+]
+
+y_train = [0, 1, 1, 0]
 
 model.train(X_train, y_train)
-pred = model.predict(X_test)
-
-correct = 0
-import numpy as np
-y_test = np.array(y_test)
-
-for i in range(len(y_test)):
-    print('y_test', y_test[i], 'pred', pred[i])
-    if(y_test[i] == pred[i]):
-        correct += 1
-print('accur', correct/len(y_test))
