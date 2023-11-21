@@ -101,15 +101,15 @@ X_test['MinorAxisLength'] = minorNormalizer.transform(X_test['MinorAxisLength'])
 
 from Models.multilayer_perceptron import MulilayerPerceptron
 
-model = MulilayerPerceptron(hasBias=True, learning_rate=0.1, epochs=3000, layers=[2, 2, 1], activation='sigmoid')
+model = MulilayerPerceptron(hasBias=True, learning_rate=0.1, epochs=100, layers=[5, 3, 4, 3], activation='sigmoid')
 
-X_train = [
-    [0, 0],
-    [0, 1],
-    [1, 0],
-    [1, 1]
-]
+# X_train = [
+#     [0, 0],
+#     [0, 1],
+#     [1, 0],
+#     [1, 1]
+# ]
 
-y_train = [0, 1, 1, 0]
+# y_train = [0, 1, 1, 0]
 
 model.train(X_train, y_train)

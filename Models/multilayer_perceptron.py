@@ -11,6 +11,14 @@ class MulilayerPerceptron() :
         self.hasBias = hasBias
         self.learning_rate = learning_rate
         self.epochs = epochs
+
+        if(activation == 'sigmoid'):
+            self.f_dash = self._sigmoid_dash
+        elif(activation == 'tanh'):
+            self.f_dash = self._tanh_dash
+        else:
+            raise('please enter a valid activation: [sigmoid, tanh]')
+
         # the number of weights is equal to the num of neurons in the previous layer
         self.neurons = []
         for i in range(1, len(layers)):
@@ -25,16 +33,8 @@ class MulilayerPerceptron() :
         print('architecture layers', len(self.neurons))
         for layer in self.neurons:
             print('layer with', len(layer), 'numOfWeights', len(layer[0].weights))
-        for i in range(len(self.neurons)):
-            layer = self.neurons[i]
-            for j in range(len(layer)):
-                neuron = layer[j]
-                if i == 0 and j == 0:
-                    neuron.weights = [-0.3, 0.21, 0.15]
-                if i == 0 and j == 1:
-                    neuron.weights = [0.25, -0.4, 0.1]
-                if i == 1:
-                    neuron.weights = [-0.4, -0.2, 0.3]
+
+            
 
 
     def train(self, input_data, output_data):
@@ -43,8 +43,8 @@ class MulilayerPerceptron() :
         classes_num = np.unique(y).size
         self.classes_num = classes_num
 
-        y_multiClass = [self.__transformY(y, positiveClassIndex=index) for index in range(classes_num-1, -1, -1)]
-        y_multiClass = np.array(y_multiClass)
+        y_multiClass = self._transform_Y_to_multiclass(y)
+        
 
 
         sampleSize = X.shape[0]
@@ -56,7 +56,6 @@ class MulilayerPerceptron() :
             for i in range(sampleSize):
                 layersOutputs = self._forward(X[i])
                 # print(layersOutputs)
-
                 error += self._backward(layersOutputs, y_multiClass, i)
 
                 # break # to just make 1 sample of x
@@ -74,11 +73,11 @@ class MulilayerPerceptron() :
     def _forward(self, xi):
         previousLayerOutput = xi
         layersOutput = [
-            xi.tolist()
+            xi
         ]
         for layer in self.neurons:
             neuronsNum = len(layer)
-            layersOutput.append([0] * neuronsNum)
+            layersOutput.append(np.zeros(neuronsNum))
             
         
         for layerIndex in range(len(self.neurons)):
@@ -106,12 +105,11 @@ class MulilayerPerceptron() :
             for neuronIndex in range(len(layer)):
                 
                 Y_k_plus1 = layersOutputs[layerIndex + 1][neuronIndex]
-                f_dash = Y_k_plus1 * (1 - Y_k_plus1)
                 isLastLayer = layerIndex == len(self.neurons) - 1
                 if isLastLayer:
+                    # print('y_pred', Y_k_plus1, 'y_act', y_multiClass[neuronIndex][sampleIndex])
                     terminal_gradient = y_multiClass[neuronIndex][sampleIndex] - Y_k_plus1
                     error = terminal_gradient
-                    # print('y', y_multiClass[neuronIndex][sampleIndex], 'terminal_gradient', terminal_gradient)
                 else:
                     terminal_gradient = 0
                     nextLayer = self.neurons[layerIndex + 1]
@@ -123,6 +121,7 @@ class MulilayerPerceptron() :
 
 
                 # print('Y_k_plus1', Y_k_plus1, 'f_dash', f_dash, 'terminal_gradient', terminal_gradient, 'gradient', gradient)
+                f_dash = self.f_dash(Y_k_plus1)
                 gradient = f_dash * terminal_gradient
                 layersGradients[layerIndex][neuronIndex] = gradient
                 neuron = layer[neuronIndex]
@@ -132,14 +131,26 @@ class MulilayerPerceptron() :
         return error
 
 
+    def _sigmoid_dash(self, Y_k_plus1):
+        return Y_k_plus1 * (1 - Y_k_plus1)
 
-    def __transformY(self, y, positiveClassIndex):
-        y = np.array(y)
-        for i in range(len(y)):
-            y[i] = 1 if y[i] == positiveClassIndex else 0
-        return y
+    def _tanh_dash(self, Y_k_plus1):
+        return 1 - (Y_k_plus1 ** 2)
 
 
+
+    def _transform_Y_to_multiclass(self, y):
+        y_multiClass =  []
+        for positiveClassIndex in range(self.classes_num-1, -1, -1):
+            y_class = np.array(y)
+            for i in range(len(y)):
+                y_class[i] = 1 if y_class[i] == positiveClassIndex else 0
+            y_multiClass.append(y_class)
+        return y_multiClass
+
+
+    def _classifyOutput(self, lastLayerOutput):
+        pass
 
 
     class _Neuron():
@@ -151,7 +162,7 @@ class MulilayerPerceptron() :
             else:
                 raise('please enter a valid activation: [sigmoid, tanh]')
             
-            r = np.random.RandomState(0)
+            r = np.random.RandomState()
             self.weights = r.random(weightsNum + int(network_instance.hasBias))
             self.network_instance = network_instance
     
