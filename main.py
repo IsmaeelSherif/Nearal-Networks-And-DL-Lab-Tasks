@@ -101,7 +101,7 @@ X_test['MinorAxisLength'] = minorNormalizer.transform(X_test['MinorAxisLength'])
 
 from Models.multilayer_perceptron import MulilayerPerceptron
 
-model = MulilayerPerceptron(hasBias=True, learning_rate=0.1, epochs=100, layers=[5, 3, 4, 3], activation='sigmoid')
+model = MulilayerPerceptron(hasBias=True, learning_rate=0.1, epochs=1000, layers=[5, 3, 4, 3], activation='tanh')
 
 # X_train = [
 #     [0, 0],
@@ -113,3 +113,15 @@ model = MulilayerPerceptron(hasBias=True, learning_rate=0.1, epochs=100, layers=
 # y_train = [0, 1, 1, 0]
 
 model.train(X_train, y_train)
+
+
+y_pred = model.predict(X_test)
+correct = 0
+import numpy as np
+y_test = np.array(y_test)
+
+for i in range(len(y_test)):
+    print('y_test', y_test[i], 'pred', y_pred[i])
+    if(y_test[i] == y_pred[i]):
+        correct += 1
+print('accur', correct/len(y_test))

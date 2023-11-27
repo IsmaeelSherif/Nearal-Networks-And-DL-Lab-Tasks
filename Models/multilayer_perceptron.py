@@ -32,7 +32,7 @@ class MulilayerPerceptron() :
 
         print('architecture layers', len(self.neurons))
         for layer in self.neurons:
-            print('layer with', len(layer), 'numOfWeights', len(layer[0].weights))
+            print('layer with neuronsNum:', len(layer), 'numOfInputWeights', len(layer[0].weights))
 
             
 
@@ -40,7 +40,13 @@ class MulilayerPerceptron() :
     def train(self, input_data, output_data):
         X = np.array(input_data)
         y = np.array(output_data)
+
+        assert len(X) == len(y)
+        assert self._isCorrectInputLayer(X)
         classes_num = np.unique(y).size
+        assert self._isCorrectOutputLayer(classes_num)
+
+        
         self.classes_num = classes_num
 
         y_multiClass = self._transform_Y_to_multiclass(y)
@@ -60,14 +66,13 @@ class MulilayerPerceptron() :
 
                 # break # to just make 1 sample of x
 
-            print('epoch', epoch_num, 'error', error)
+            print('epoch', epoch_num, ' accur:', (sampleSize - error), '/', sampleSize)
+            if error == 0:
+                print('early stopping, error is 0')
+                break
 
         
-        for i in range(len(self.neurons)):
-            layer = self.neurons[i]
-            for j in range(len(layer)):
-                neuron = layer[j]
-                print('neuron', i, j, 'weights', neuron.weights)
+        # self.printWeights()
 
 
     def _forward(self, xi):
@@ -93,42 +98,61 @@ class MulilayerPerceptron() :
 
     def _backward(self, layersOutputs, y_multiClass, sampleIndex):
 
-        error = 0
         layersGradients = []
+        
         for layer in self.neurons:
             neuronsNum = len(layer)
             layersGradients.append([0] * neuronsNum)
 
-        for layerIndex in range(len(self.neurons)-1, -1, -1):
+
+        last_layer_index = len(self.neurons) - 1
+        last_layer = self.neurons[last_layer_index]
+
+        # Last Layer
+        for neuronIndex in range(len(last_layer)):
+            Y_k_plus1 = layersOutputs[last_layer_index + 1][neuronIndex]
+            terminal_gradient = y_multiClass[neuronIndex][sampleIndex] - Y_k_plus1
+            error = terminal_gradient
+
+            f_dash = self.f_dash(Y_k_plus1)
+            gradient = f_dash * terminal_gradient
+            layersGradients[last_layer_index][neuronIndex] = gradient
+            neuron = last_layer[neuronIndex]
+            neuron.backward(gradient, layersOutputs[last_layer_index])
+
+        # Processing for other layers
+        for layerIndex in range(last_layer_index - 1, -1, -1):
             layer = self.neurons[layerIndex]
 
             for neuronIndex in range(len(layer)):
-                
-                Y_k_plus1 = layersOutputs[layerIndex + 1][neuronIndex]
-                isLastLayer = layerIndex == len(self.neurons) - 1
-                if isLastLayer:
-                    # print('y_pred', Y_k_plus1, 'y_act', y_multiClass[neuronIndex][sampleIndex])
-                    terminal_gradient = y_multiClass[neuronIndex][sampleIndex] - Y_k_plus1
-                    error = terminal_gradient
-                else:
-                    terminal_gradient = 0
-                    nextLayer = self.neurons[layerIndex + 1]
-                    for nextLayerNeuronIndex in range(len(nextLayer)):
-                        weightIndex = neuronIndex + 1 if self.hasBias else neuronIndex
-                        weight = nextLayer[nextLayerNeuronIndex].weights[weightIndex]
-                        terminal_neuron_gradient = layersGradients[layerIndex + 1][nextLayerNeuronIndex]
-                        terminal_gradient += terminal_neuron_gradient * weight
+                terminal_gradient = 0
+                nextLayer = self.neurons[layerIndex + 1]
 
+                for nextLayerNeuronIndex in range(len(nextLayer)):
+                    weightIndex = neuronIndex + 1 if self.hasBias else neuronIndex
+                    weight = nextLayer[nextLayerNeuronIndex].weights[weightIndex]
+                    terminal_neuron_gradient = layersGradients[layerIndex + 1][nextLayerNeuronIndex]
+                    terminal_gradient += terminal_neuron_gradient * weight
 
-                # print('Y_k_plus1', Y_k_plus1, 'f_dash', f_dash, 'terminal_gradient', terminal_gradient, 'gradient', gradient)
-                f_dash = self.f_dash(Y_k_plus1)
+                f_dash = self.f_dash(layersOutputs[layerIndex + 1][neuronIndex])
                 gradient = f_dash * terminal_gradient
                 layersGradients[layerIndex][neuronIndex] = gradient
                 neuron = layer[neuronIndex]
                 neuron.backward(gradient, layersOutputs[layerIndex])
                 
 
+        last_layer_pred = last_layer_pred = layersOutputs[-1]
+        final_class = self._classifyOutput(last_layer_pred)
+        error = 1 if y_multiClass[final_class][sampleIndex] != 1 else 0
         return error
+
+
+    def printWeights(self):
+        for i in range(len(self.neurons)):
+            layer = self.neurons[i]
+            for j in range(len(layer)):
+                neuron = layer[j]
+                print('neuron', i, j, 'weights', neuron.weights)
 
 
     def _sigmoid_dash(self, Y_k_plus1):
@@ -141,7 +165,7 @@ class MulilayerPerceptron() :
 
     def _transform_Y_to_multiclass(self, y):
         y_multiClass =  []
-        for positiveClassIndex in range(self.classes_num-1, -1, -1):
+        for positiveClassIndex in range(self.classes_num):
             y_class = np.array(y)
             for i in range(len(y)):
                 y_class[i] = 1 if y_class[i] == positiveClassIndex else 0
@@ -149,8 +173,43 @@ class MulilayerPerceptron() :
         return y_multiClass
 
 
-    def _classifyOutput(self, lastLayerOutput):
-        pass
+    def _classifyOutput(self, last_layer_pred):
+        maxPred = -999
+        maxIndex = None
+        for i in range(len(last_layer_pred)):
+            pred = last_layer_pred[i]
+            if pred > maxPred:
+                maxPred = pred
+                maxIndex = i
+        
+        return maxIndex
+    
+
+    def predict(self, X):
+        X = np.array(X)
+        sampleSize = X.shape[0]
+        y_pred = np.zeros(sampleSize)
+
+        for i in range(sampleSize):
+            layersOutputs = self._forward(X[i])
+            last_layer_pred = layersOutputs[-1]
+            final_class = self._classifyOutput(last_layer_pred)
+            y_pred[i] = final_class
+        return y_pred
+
+    def _isCorrectInputLayer(self, X):
+        firstLayerWeightsExample = self.neurons[0][0].weights
+        x_columns_num = X.shape[1]
+        if self.hasBias:
+            x_columns_num += 1
+        return len(firstLayerWeightsExample) == x_columns_num
+    
+    def _isCorrectOutputLayer(self, classes_num):
+        lastLayerNeurons = self.neurons[-1]
+        numOfOutputNeurons = len(lastLayerNeurons)
+        if classes_num == 2 and numOfOutputNeurons == 1:
+            return True
+        return len(lastLayerNeurons) == classes_num
 
 
     class _Neuron():
@@ -180,7 +239,6 @@ class MulilayerPerceptron() :
                 x = self._addBiasToX(x)
     
             self.weights += grdient * self.network_instance.learning_rate * x
-            # print('backward', x, 'updated', self.weights)
     
     
         def _sigmoid(self, z):
